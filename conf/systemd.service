@@ -1,0 +1,62 @@
+[Unit]
+Description=Alby Hub — self-hosted Lightning wallet (HTTP mode)
+After=network.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__
+Environment=PORT=__PORT__
+Environment=WORK_DIR=__DATA_DIR__
+Environment=DATABASE_URI=__DATA_DIR__/nwc.db
+Environment=LOG_LEVEL=4
+Environment=LOG_TO_FILE=true
+# Owner-only files: Alby Hub otherwise creates the SQLite wallet DB (nwc.db),
+# the LDK node state under $data_dir/ldk/ (bbolt channel monitors, node keys)
+# and its logs world-readable (0644/0755). The $data_dir is already 0750, but
+# tightening the umask means any file the service creates is 0600/0700 owned
+# by __APP__.
+UMask=0077
+ExecStart=__INSTALL_DIR__/bin/albyhub
+Restart=on-failure
+RestartSec=5
+
+# --- systemd hardening --------------------------------
+# Alby Hub is a network service: its HTTP listener binds [::]:__PORT__ (the
+# ports resource keeps that port firewall-closed, so only nginx on localhost
+# can reach it), and the embedded LDK node opens an outbound/inbound P2P
+# listener on 9735. The sandbox keeps network access but otherwise follows
+# the YunoHost baseline: private /tmp, a read-only system tree with only
+# $data_dir writable, no device/kernel/module access, a locked-down
+# personality.
+#
+# Deliberately omits MemoryDenyWriteExecute and aggressive SystemCallFilter
+# rules: Alby Hub is a Go binary with an embedded LDK node that needs
+# outbound P2P networking, and over-restricting syscalls risks a wallet
+# crash-loop. The rules here are the ones known-safe for this service class.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__DATA_DIR__
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+
+# HTTP + Lightning P2P (TCP/UDP over IPv4+IPv6, plus Unix sockets for logging).
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

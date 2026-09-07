@@ -1,0 +1,15 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+# Nginx-only change_url for v1 (see doc/ADMIN.md, "Changing domain").
+# Alby Hub serves on a firewall-closed internal port at the domain root;
+# moving to another dedicated domain (or a new path on one) only requires
+# re-rendering the nginx proxy configuration. The wallet data and binary are
+# untouched.
+
+ynh_script_progression "Updating Alby Hub URL..."
+ynh_config_change_url_nginx
+ynh_script_progression "Alby Hub URL update completed"

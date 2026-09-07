@@ -1,0 +1,13 @@
+# Release archives downloaded during test installs
+*.tar.gz
+*.tar.bz2
+*.tgz
+
+# Python / package_linter artefacts
+__pycache__/
+*.pyc
+.venv/
+
+# Editor/OS noise
+*.swp
+.DS_Store

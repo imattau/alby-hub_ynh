@@ -1,0 +1,97 @@
+packaging_format = 2
+
+id = "alby_hub"
+name = "Alby Hub"
+description.en = "Self-hosted Lightning wallet with an embedded LDK node and Nostr Wallet Connect server"
+description.fr = "Portefeuille Lightning auto-hébergé avec noeud LDK intégré et serveur Nostr Wallet Connect"
+version = "1.24.0~ynh1"
+maintainers = ["alby_hub_ynh contributors"]
+
+[upstream]
+license = "Apache-2.0"
+code = "https://github.com/getAlby/hub"
+website = "https://albyhub.com"
+
+[integration]
+yunohost = ">= 12.0"
+helpers_version = "2.1"
+architectures = ["amd64", "arm64"]
+multi_instance = true
+ldap = false
+sso = false
+disk = "500M"
+ram.build = "50M"
+ram.runtime = "200M"
+
+# ---------------------------------------------------------------------------
+# Financial application warning
+#
+# Alby Hub controls Bitcoin and Lightning funds. Recovery is the user's
+# seed phrase (backed up inside the Alby Hub UI / unlocked wallet), NOT the
+# YunoHost backup. See doc/DISCLAIMER.md and doc/BACKUP.md - both are
+# surfaced to the admin during install and referenced in the admin docs.
+# ---------------------------------------------------------------------------
+
+[install]
+
+    [install.domain]
+    type = "domain"
+
+    # Dedicated domain, root path only. Alby Hub supports base paths, but a
+    # dedicated domain keeps NWC, API and WebSocket behaviour predictable
+    # (see doc/ADMIN.md). No path question is offered on purpose for v1.
+    [install.path]
+    type = "path"
+    default = "/"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+    help = "Who should be able to reach the Alby Hub endpoint? This only controls reachability - the wallet itself is still protected by Alby Hub's own authentication."
+
+    [install.app_name]
+    ask.en = "Display name"
+    ask.fr = "Nom affiché"
+    type = "string"
+    default = "Alby Hub"
+    example = "My Alby Hub"
+
+[resources]
+
+    # Upstream ships a single self-contained Go binary per architecture
+    # (see scripts/install). Each is fetched as a distinct source so the
+    # package_linter / autoupdate sees architecture-specific releases.
+    [resources.sources.main]
+        url = "https://github.com/getAlby/hub/releases/download/v1.24.0/albyhub-Server-Linux-x86_64.tar.bz2"
+        sha256 = "b7495ceb19d2428c58de113edc8a74452efe965f79b2627c6a0e11bbecad57cd"
+        format = "tar.bz2"
+        # extract=false + rename: ynh_setup_source downloads the archive and
+        # drops it at $install_dir/albyhub.tar.bz2 without unpacking; the
+        # install/upgrade scripts unpack it themselves (the tarball contains
+        # bin/albyhub + lib/libldk_node.so which must keep their relative
+        # layout for the binary's $ORIGIN/../lib RPATH).
+        extract = false
+        rename = "albyhub.tar.bz2"
+        autoupdate.strategy = "latest_github_release"
+        autoupdate.asset = "albyhub-Server-Linux-x86_64.tar.bz2"
+
+        [resources.sources.main.arm64]
+        url = "https://github.com/getAlby/hub/releases/download/v1.24.0/albyhub-Server-Linux-aarch64.tar.bz2"
+        sha256 = "7aeab95c17da4015a156394d630ef4c45be3a19584dd615504fd3c2a57488042"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    # Persistent wallet/LDK/SQLite state. Deliberately separate from
+    # install_dir so upgrades replace the binary without touching funds.
+    [resources.data_dir]
+
+    [resources.apt]
+    packages = "ca-certificates, curl, bzip2"
+
+    [resources.ports.main]
+        default = 8080
+
+    [resources.permissions]
+        main.url = "/"

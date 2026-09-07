@@ -1,0 +1,49 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+# ---------------------------------------------------------------------------
+# Conservative upgrade for a wallet app (see doc/ADMIN.md, "Upgrade safety"):
+#
+#   stop -> replace binary -> (no automatic DB rollback) -> start -> health
+#
+# Wallet state under $data_dir is never modified by this script, mirroring
+# the plan's rule that a bad startup must not touch funds. If a newer Alby
+# Hub migrates the database in a way an older binary can't read, do NOT
+# attempt automatic rollback of the data dir.
+# ---------------------------------------------------------------------------
+
+ynh_script_progression "Fetching new Alby Hub release..."
+ynh_setup_source --dest_dir="$install_dir" --keep="lib/libldk_node.so"
+
+ynh_script_progression "Stopping Alby Hub..."
+ynh_systemctl --service="$service_name" --action=stop --log_path=systemd
+
+ynh_script_progression "Replacing Alby Hub binary..."
+ynh_alby_unpack_release
+
+ynh_script_progression "Upgrading systemd configuration..."
+yunohost service add "$service_name" --description="Alby Hub self-hosted Lightning wallet (HTTP mode)" --log="$alby_log_path" || true
+ynh_config_add_systemd
+
+ynh_script_progression "Upgrading Nginx configuration..."
+ynh_config_add_nginx
+
+ynh_script_progression "Starting Alby Hub..."
+ynh_systemctl --service="$service_name" --action=start --wait_until="http server started" --log_path=systemd --timeout=60
+
+ynh_script_progression "Verifying health..."
+i=0
+until curl -sf -o /dev/null "http://127.0.0.1:$port/" 2>/dev/null; do
+	i=$((i + 1))
+	if [ "$i" -ge 30 ]; then
+		ynh_die "Alby Hub did not answer on 127.0.0.1:$port within 30s (wallet data was NOT modified)"
+	fi
+	sleep 1
+done
+
+ynh_script_progression "Alby Hub upgrade completed"
+ynh_alby_display_url
+ynh_alby_recovery_warning

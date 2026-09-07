@@ -1,0 +1,64 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+# ---------------------------------------------------------------------------
+# 1. Download the upstream release archive. The sources resource is declared
+#    with `extract = false` + `rename`, so ynh_setup_source validates the
+#    pinned sha256 and leaves $install_dir/albyhub.tar.bz2 for us to unpack.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Fetching Alby Hub release archive..."
+ynh_setup_source --dest_dir="$install_dir"
+
+# ---------------------------------------------------------------------------
+# 2. Unpack bin/albyhub + lib/libldk_node.so, preserve ownership/layout.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Installing Alby Hub binary..."
+ynh_alby_unpack_release
+
+# ---------------------------------------------------------------------------
+# 3. Create the persistent data directory (separate from the replaceable
+#    binary). Alby Hub stores its SQLite DB + LDK state under WORK_DIR.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Preparing persistent data directory..."
+mkdir -p "$data_dir"
+chown -R "$app:$app" "$data_dir"
+chmod 750 "$data_dir"
+
+# ---------------------------------------------------------------------------
+# 4. Register the service and install systemd + nginx configs.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Configuring systemd..."
+yunohost service add "$service_name" --description="Alby Hub self-hosted Lightning wallet (HTTP mode)" --log="$alby_log_path" || true
+ynh_config_add_systemd
+
+ynh_script_progression "Configuring Nginx..."
+ynh_config_add_nginx
+
+# ---------------------------------------------------------------------------
+# 5. Start the service (Echo binds [::]:$port, but the ports resource keeps
+#    that port firewall-closed so only nginx on localhost can reach it) and
+#    wait for the HTTP endpoint to come up.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Starting Alby Hub..."
+ynh_systemctl --service="$service_name" --action=start --wait_until="http server started" --log_path=systemd --timeout=60
+
+ynh_script_progression "Verifying health..."
+i=0
+until curl -sf -o /dev/null "http://127.0.0.1:$port/" 2>/dev/null; do
+	i=$((i + 1))
+	if [ "$i" -ge 30 ]; then
+		ynh_die "Alby Hub did not answer on 127.0.0.1:$port within 30s"
+	fi
+	sleep 1
+done
+
+# ---------------------------------------------------------------------------
+# 6. First-run / recovery instructions.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Alby Hub installation completed"
+ynh_alby_display_url
+ynh_alby_recovery_warning
+ynh_print_info "Open the URL above to create your wallet and record its recovery phrase."

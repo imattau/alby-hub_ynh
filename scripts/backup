@@ -1,0 +1,29 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+# ---------------------------------------------------------------------------
+# Back up only persistent wallet state (never the binary/archives/caches,
+# which live under $install_dir and are not declared here).
+#
+# Alby Hub does not guarantee consistent live snapshots of its SQLite/LDK
+# state, so the service is stopped first (a clean stop flushes SQLite to the
+# on-disk WAL/db and stops LDK background writes), the data dir is declared
+# for backup, and the service is brought back up. The archive itself is
+# written by YunoHost shortly after this script returns; see doc/BACKUP.md
+# for the residual consistency window and the restore-test checklist.
+#
+# NB: no ynh_script_progression here - during backup the script only
+# *declares* what to back up.
+# ---------------------------------------------------------------------------
+
+ynh_print_info "Stopping Alby Hub for a consistent snapshot..."
+ynh_systemctl --service="$service_name" --action=stop --log_path=systemd || true
+
+ynh_print_info "Declaring wallet data to be backed up..."
+ynh_backup "$data_dir"
+
+ynh_print_info "Restarting Alby Hub..."
+ynh_systemctl --service="$service_name" --action=start --log_path=systemd || true

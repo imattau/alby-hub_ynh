@@ -1,0 +1,29 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+ynh_script_progression "Stopping Alby Hub..."
+ynh_systemctl --service="$service_name" --action=stop --log_path=systemd || true
+
+ynh_script_progression "Removing Nginx configuration..."
+ynh_config_remove_nginx
+
+ynh_script_progression "Removing systemd service..."
+ynh_config_remove_systemd "$service_name"
+yunohost service remove "$service_name" || true
+
+ynh_script_progression "Removing Alby Hub binary..."
+ynh_safe_rm "$install_dir"
+
+# ---------------------------------------------------------------------------
+# Wallet data (SQLite DB + LDK state) under $data_dir is deliberately NOT
+# removed here. YunoHost itself leaves $data_dir in place unless the admin
+# passes --purge, and that behaviour is exactly what a wallet app needs: an
+# uninstall must never destroy Lightning funds by accident. The recovery
+# phrase is the authoritative backup; see doc/BACKUP.md.
+# ---------------------------------------------------------------------------
+ynh_script_progression "Alby Hub removal completed (wallet data kept)"
+ynh_print_warn "Wallet data was left in place under $data_dir."
+ynh_print_warn "If you meant to delete it too, re-run removal with --purge."
