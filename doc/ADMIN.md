@@ -116,6 +116,16 @@ install/upgrade/restore scripts then:
 If `core_lightning`'s group doesn't exist yet, install/upgrade fails with a
 clear error rather than silently falling back to LDK.
 
+For a CLN instance, preflight also requires `grpc_enabled=true`, a running
+`core_lightning` service, and readable `ca.pem`, `client.pem`, and
+`client-key.pem` files in `cln_lightning_dir` as the Alby service user. This
+prevents a healthy-looking Hub install from silently starting without access
+to the intended node.
+
+Alby Hub's embedded-node recovery phrase does not restore a CLN wallet. Back
+up Core Lightning's mnemonic or `hsm_secret`, `emergency.recover`, and the
+latest `lightningd.sqlite3` using the Core Lightning recovery guide.
+
 ### Guard against manually editing `ln_backend_type`
 
 A normal `yunohost app upgrade` never changes `ln_backend_type` — the upgrade

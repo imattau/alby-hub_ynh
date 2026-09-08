@@ -42,9 +42,16 @@ ynh_alby_display_url() {
 # for the long form). Kept in one place so the wording stays consistent.
 ynh_alby_recovery_warning() {
 	ynh_print_warn "Alby Hub controls Bitcoin and Lightning funds."
-	ynh_print_warn "Store the recovery phrase shown during first-run setup"
-	ynh_print_warn "somewhere secure OUTSIDE this server. A YunoHost backup"
-	ynh_print_warn "is NOT a substitute for the wallet recovery phrase."
+	local backend="${ln_backend_type:-$(ynh_app_setting_get --app="$app" --key=ln_backend_type 2>/dev/null || echo LDK)}"
+	if [ "$backend" = "CLN" ]; then
+		ynh_print_warn "This Hub uses an external Core Lightning wallet; Alby Hub does not own its seed or channel database."
+		ynh_print_warn "Back up Core Lightning's mnemonic or hsm_secret, emergency.recover, and lightningd.sqlite3 separately."
+		ynh_print_warn "The Alby Hub recovery phrase is not a replacement for Core Lightning recovery material."
+	else
+		ynh_print_warn "Store the recovery phrase shown during first-run setup"
+		ynh_print_warn "somewhere secure OUTSIDE this server. A YunoHost backup"
+		ynh_print_warn "is NOT a substitute for the wallet recovery phrase."
+	fi
 }
 
 # YunoHost allocates this resource independently for each multi-instance
@@ -73,6 +80,31 @@ ynh_alby_check_backend_instance_safety() {
 			ynh_die "Another Alby Hub instance ($existing) already uses the packaged Core Lightning node. Multiple CLN-backed Alby Hub instances are not supported because they would share the same external wallet/node."
 		fi
 	done < <(yunohost app list --output-as json 2>/dev/null | jq -r '.apps[]?.id | select(startswith("alby_hub"))')
+}
+
+# Fail before starting Alby Hub if a CLN-backed install cannot actually read
+# the external node's gRPC material. Checking only for the group is not
+# enough: the service account also needs readable client certificates, and
+# the packaged CLN node must be running with gRPC enabled.
+ynh_alby_check_cln_backend() {
+	local backend cln_address cln_lightning_dir grpc_enabled cert
+	backend="${ln_backend_type:-$(ynh_app_setting_get --app="$app" --key=ln_backend_type 2>/dev/null || echo LDK)}"
+	[ "$backend" = "CLN" ] || return 0
+	cln_address="$(ynh_app_setting_get --app="$app" --key=cln_address 2>/dev/null || true)"
+	cln_lightning_dir="$(ynh_app_setting_get --app="$app" --key=cln_lightning_dir 2>/dev/null || true)"
+	[ -n "$cln_address" ] || ynh_die "CLN backend selected but cln_address is empty."
+	[ -n "$cln_lightning_dir" ] || ynh_die "CLN backend selected but cln_lightning_dir is empty."
+	getent group core_lightning >/dev/null || ynh_die "CLN backend selected, but the core_lightning system group does not exist. Install core-lightning_ynh first."
+	grpc_enabled="$(ynh_app_setting_get --app=core_lightning --key=grpc_enabled 2>/dev/null || true)"
+	[ "$grpc_enabled" = "true" ] || ynh_die "CLN backend selected, but core_lightning gRPC is not enabled. Enable grpc_enabled in the Core Lightning config panel first."
+	systemctl is-active --quiet core_lightning || ynh_die "CLN backend selected, but the core_lightning service is not running. Start or repair Core Lightning first."
+	usermod -aG core_lightning "$app" || ynh_die "Could not grant $app access to the core_lightning gRPC group."
+	for cert in ca.pem client.pem client-key.pem; do
+		[ -r "$cln_lightning_dir/$cert" ] || ynh_die "CLN gRPC certificate is missing or unreadable: $cln_lightning_dir/$cert. Start Core Lightning with gRPC enabled first."
+		if ! runuser -u "$app" -- test -r "$cln_lightning_dir/$cert"; then
+			ynh_die "The Alby Hub service user cannot read $cln_lightning_dir/$cert. Check Core Lightning group and directory permissions."
+		fi
+	done
 }
 
 # Unpack the downloaded release archive into $install_dir, preserving the
@@ -119,6 +151,7 @@ ynh_alby_build_backend_env() {
 
 		[ -n "$cln_address" ] || ynh_die "ln_backend_type is CLN but cln_address is not set"
 		[ -n "$cln_lightning_dir" ] || ynh_die "ln_backend_type is CLN but cln_lightning_dir is not set"
+		ynh_alby_check_cln_backend
 
 		getent group core_lightning >/dev/null || ynh_die "ln_backend_type is CLN, but no 'core_lightning' system group was found. Install core-lightning_ynh with gRPC enabled first."
 		usermod -aG core_lightning "$app"

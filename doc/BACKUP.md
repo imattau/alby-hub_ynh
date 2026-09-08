@@ -14,6 +14,14 @@ The upstream release **binary and archives are deliberately excluded** — they
 live under `$install_dir` and are reinstalled from the pinned upstream release
 on restore, so a restore always produces a consistent binary/state pair.
 
+### CLN-backed instances
+
+When `ln_backend_type=CLN`, this backup covers Alby Hub's application state,
+not the external Core Lightning wallet. Back up the Core Lightning mnemonic
+or `hsm_secret`, `emergency.recover`, and the latest `lightningd.sqlite3`
+separately. Do not use the Alby Hub recovery phrase to recover a CLN wallet;
+that phrase is for the embedded LDK backend.
+
 ## What a backup is *not*
 
 A backup is **not** your wallet's recovery phrase. See
@@ -46,8 +54,8 @@ After a restore, confirm each of these before trusting the result:
    "create wallet" prompt — if you see one, the database did not restore);
 3. configuration is intact (currency, node backend, connected apps);
 4. NWC connections, where present, still work;
-5. Lightning channels/balance look correct (be patient — LDK may need to
-   resync from the chain before balances are final).
+5. Lightning channels/balance look correct. For LDK, allow chain resync; for
+   CLN, verify the external node with `lightning-cli getinfo` and `listfunds`.
 
 If the wallet is not recognised after a restore, **stop** and recover from the
 recovery phrase through the Alby Hub UI rather than continuing to use a

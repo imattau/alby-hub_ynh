@@ -42,6 +42,7 @@ if [ "${ln_backend_type:-LDK}" = "CLN" ]; then
 	ynh_app_setting_set --app="$app" --key=cln_address --value="${cln_address:-}"
 	ynh_app_setting_set --app="$app" --key=cln_lightning_dir --value="${cln_lightning_dir:-}"
 	ynh_app_setting_set --app="$app" --key=cln_address_hold --value="${cln_address_hold:-}"
+	ynh_alby_check_cln_backend
 fi
 
 # ---------------------------------------------------------------------------

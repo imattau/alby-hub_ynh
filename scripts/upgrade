@@ -5,6 +5,7 @@ source /usr/share/yunohost/helpers
 source "$(dirname "$0")/_common.sh"
 
 ynh_alby_check_backend_lock
+ynh_alby_check_cln_backend
 
 # ---------------------------------------------------------------------------
 # Conservative upgrade for a wallet app (see doc/ADMIN.md, "Upgrade safety"):
