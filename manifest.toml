@@ -7,7 +7,7 @@ name = "Alby Hub"
 description.en = "Self-hosted Lightning wallet with an embedded LDK node and Nostr Wallet Connect server"
 description.fr = "Portefeuille Lightning auto-hébergé avec noeud LDK intégré et serveur Nostr Wallet Connect"
 category = "utilities"
-version = "1.24.0~ynh2"
+version = "1.24.0~ynh3"
 maintainers = ["alby_hub_ynh contributors"]
 
 [upstream]
@@ -97,4 +97,9 @@ ram.runtime = "200M"
         default = 8080
 
     [resources.permissions]
-        main.url = "/"
+        [resources.permissions.main]
+        url = "/"
+        # Alby Hub authenticates API requests with its own wallet JWT. Do not
+        # inject YunoHost's auth header, which can collide with Authorization:
+        # Bearer ... on requests made after /api/unlock.
+        auth_header = false
