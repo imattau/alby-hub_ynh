@@ -101,3 +101,28 @@ Environment=CLN_ADDRESS_HOLD=$cln_address_hold"
 		cln_lightning_dir_ro="$cln_lightning_dir"
 	fi
 }
+
+# Records which backend the wallet was actually initialized with, once
+# install has confirmed the service came up healthy. This is the value
+# ynh_alby_check_backend_lock compares future ln_backend_type settings
+# against - it is deliberately separate from ln_backend_type itself so a
+# stray `yunohost app setting` edit can be detected instead of silently
+# taking effect on the next upgrade.
+ynh_alby_lock_backend() {
+	ynh_app_setting_set --app="$app" --key=ln_backend_type_locked --value="$ln_backend_type"
+}
+
+# Refuses to proceed if ln_backend_type has been changed since the wallet
+# was actually set up (e.g. via a manual `yunohost app setting` edit rather
+# than a fresh install). Upstream Alby Hub fixes its backend at first wallet
+# setup - rebuilding the systemd unit for a different backend would leave
+# the env vars and the wallet's actual internal state pointing at different
+# nodes. No-ops for instances that predate this check (no locked value yet).
+ynh_alby_check_backend_lock() {
+	local locked current
+	locked="$(ynh_app_setting_get --app="$app" --key=ln_backend_type_locked 2>/dev/null || true)"
+	current="$(ynh_app_setting_get --app="$app" --key=ln_backend_type 2>/dev/null || echo LDK)"
+	if [ -n "$locked" ] && [ "$locked" != "$current" ]; then
+		ynh_die "ln_backend_type is set to '$current' but this wallet was set up with '$locked' and Alby Hub cannot switch backends in place. Restore ln_backend_type to '$locked' (yunohost app setting $app ln_backend_type -v $locked), or see doc/ADMIN.md for the purge-and-reinstall path to actually change backends."
+	fi
+}

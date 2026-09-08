@@ -116,6 +116,25 @@ install/upgrade/restore scripts then:
 If `core_lightning`'s group doesn't exist yet, install/upgrade fails with a
 clear error rather than silently falling back to LDK.
 
+### Guard against manually editing `ln_backend_type`
+
+A normal `yunohost app upgrade` never changes `ln_backend_type` — the upgrade
+script only ever re-reads whatever was persisted at install. But nothing
+stops an admin from running
+`yunohost app setting alby_hub ln_backend_type -v CLN` (or `LDK`) by hand
+outside the intended flow. If that value no longer matches what the wallet
+was actually set up with, rebuilding the systemd unit from it would point
+Alby Hub's env vars at a different backend than its internal wallet state
+actually uses.
+
+To prevent that, install records the backend it actually brought up as
+`ln_backend_type_locked` once the health check passes. Every upgrade and
+restore calls `ynh_alby_check_backend_lock` before doing anything else, and
+refuses to proceed (`ynh_die`) if `ln_backend_type` no longer matches
+`ln_backend_type_locked`. **Do not hand-edit `ln_backend_type` on an existing
+instance** — see "The Lightning backend cannot be changed later" above for
+the only supported way to actually switch backends.
+
 ## Known v1 limitations
 
 - The embedded LDK node's own P2P listener (upstream default `[::]:9735`) is

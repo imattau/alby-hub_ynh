@@ -71,6 +71,8 @@ done
 # ---------------------------------------------------------------------------
 # 6. First-run / recovery instructions.
 # ---------------------------------------------------------------------------
+ynh_alby_lock_backend
+
 ynh_script_progression "Alby Hub installation completed"
 ynh_alby_display_url
 ynh_alby_recovery_warning
