@@ -36,6 +36,29 @@ auth). Putting YunoHost SSO in front would break those. The web endpoint is
 reachable by anyone who can dial the domain ("visitors" by default), but the
 wallet remains locked behind Alby Hub's own authentication.
 
+## Troubleshooting — "can't get past the login" (401 on everything)
+
+Alby Hub authenticates the web UI with a JWT stored in your browser's local
+storage (not a cookie). A stale token or stale frontend bundle can cause the
+login screen to remain visible while API requests return 401.
+
+This can happen after:
+
+- you change the unlock password (Alby Hub rotates its JWT signing secret on
+  purpose, logging out all sessions);
+- the token expires or is otherwise invalidated;
+- the server is upgraded while the browser still has an older frontend bundle.
+
+When that happens the login screen appears, but the browser keeps sending the
+stale token, so every request comes back 401 until it is cleared. This is not
+a database or wallet problem — the wallet and funds are unaffected.
+
+To fix: clear the site data for this domain (DevTools → Application → Local
+Storage → remove `authToken`), reload the page, and log in again. Clearing only
+the local storage is enough; do not reinstall or restore the app. The package
+also disables browser caching at the reverse proxy so future upgrades do not
+reuse an old application shell.
+
 ## Changing the domain
 
 `yunohost app change-url` moves Alby Hub to another dedicated domain (or a new
