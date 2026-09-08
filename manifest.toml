@@ -7,7 +7,7 @@ name = "Alby Hub"
 description.en = "Self-hosted Lightning wallet with an embedded LDK node and Nostr Wallet Connect server"
 description.fr = "Portefeuille Lightning auto-hébergé avec noeud LDK intégré et serveur Nostr Wallet Connect"
 category = "utilities"
-version = "1.24.0~ynh5"
+version = "1.24.0~ynh6"
 maintainers = ["alby_hub_ynh contributors"]
 
 [upstream]

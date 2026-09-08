@@ -123,11 +123,12 @@ ynh_alby_build_backend_env() {
 		getent group core_lightning >/dev/null || ynh_die "ln_backend_type is CLN, but no 'core_lightning' system group was found. Install core-lightning_ynh with gRPC enabled first."
 		usermod -aG core_lightning "$app"
 
-		cln_env_block="Environment=CLN_ADDRESS=$cln_address
-Environment=CLN_LIGHTNING_DIR=$cln_lightning_dir"
+		# ynh_config_add_systemd substitutes tokens with sed. Keep this as a
+		# single logical line: a literal newline in the replacement makes sed
+		# parse the generated command as an unterminated substitution.
+		cln_env_block="Environment=CLN_ADDRESS=$cln_address CLN_LIGHTNING_DIR=$cln_lightning_dir"
 		if [ -n "$cln_address_hold" ]; then
-			cln_env_block="$cln_env_block
-Environment=CLN_ADDRESS_HOLD=$cln_address_hold"
+			cln_env_block="$cln_env_block CLN_ADDRESS_HOLD=$cln_address_hold"
 		fi
 		cln_lightning_dir_ro="$cln_lightning_dir"
 	fi
