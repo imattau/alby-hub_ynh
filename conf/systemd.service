@@ -17,6 +17,7 @@ Environment=LOG_TO_FILE=true
 # ynh_alby_build_backend_env fills __CLN_ENV_BLOCK__ with the matching
 # CLN_ADDRESS/CLN_LIGHTNING_DIR/CLN_ADDRESS_HOLD Environment= lines.
 Environment=LN_BACKEND_TYPE=__LN_BACKEND_TYPE__
+__LDK_ENV_BLOCK__
 __CLN_ENV_BLOCK__
 # Owner-only files: Alby Hub otherwise creates the SQLite wallet DB (nwc.db),
 # the LDK node state under $data_dir/ldk/ (bbolt channel monitors, node keys)

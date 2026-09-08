@@ -7,7 +7,7 @@ name = "Alby Hub"
 description.en = "Self-hosted Lightning wallet with an embedded LDK node and Nostr Wallet Connect server"
 description.fr = "Portefeuille Lightning auto-hébergé avec noeud LDK intégré et serveur Nostr Wallet Connect"
 category = "utilities"
-version = "1.24.0~ynh4"
+version = "1.24.0~ynh5"
 maintainers = ["alby_hub_ynh contributors"]
 
 [upstream]
@@ -133,6 +133,14 @@ ram.runtime = "200M"
 
     [resources.ports.main]
         default = 8080
+
+    # The embedded LDK node listens on a separate P2P port.  Make it a real
+    # YunoHost resource so multiple Alby Hub instances receive distinct
+    # ports, and so a co-installed Core Lightning package can avoid the port.
+    # It remains firewall-closed in v1; inbound peering is not exposed yet.
+    [resources.ports.p2p]
+        default = 9735
+        exposed = false
 
     [resources.permissions]
         [resources.permissions.main]

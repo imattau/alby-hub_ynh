@@ -135,12 +135,22 @@ refuses to proceed (`ynh_die`) if `ln_backend_type` no longer matches
 instance** — see "The Lightning backend cannot be changed later" above for
 the only supported way to actually switch backends.
 
+## Multiple instances
+
+Multiple Alby Hub instances are supported for isolated embedded LDK wallets.
+Each instance receives its own YunoHost-managed LDK P2P port and data
+directory. The P2P port remains firewall-closed in this package version.
+
+Multiple instances backed by the packaged Core Lightning node are refused:
+they would create separate Hub databases controlling the same external CLN
+wallet/node. Use one CLN-backed Hub instance for that node.
+
 ## Known v1 limitations
 
-- The embedded LDK node's own P2P listener (upstream default `[::]:9735`) is
-  **not** firewall-opened by this package. Outbound channels/peering work, but
-  other nodes cannot dial in to open channels to your node until that port is
-  opened. Public inbound channels are a follow-up. (Not applicable when
+- The embedded LDK node's P2P listener is assigned a unique, firewall-closed
+  port per instance. Outbound channels/peering work, but other nodes cannot
+  dial in to open channels to your node until that port is opened. Public
+  inbound channels are a follow-up. (Not applicable when
   `ln_backend_type = CLN` — Core Lightning manages its own P2P port.)
 - Backups use a stop → declare → restart scheme; a fully atomic staged dump is
   a tracked follow-up before the package is marked stable (see

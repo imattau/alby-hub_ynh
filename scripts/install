@@ -4,6 +4,11 @@ set -eu
 source /usr/share/yunohost/helpers
 source "$(dirname "$0")/_common.sh"
 
+# Validate the backend relationship before downloading files or creating the
+# instance state directory. YunoHost will clean up a failed install, but this
+# keeps the package's own preflight side-effect free as well.
+ynh_alby_check_backend_instance_safety
+
 # ---------------------------------------------------------------------------
 # 1. Download the upstream release archive. The sources resource is declared
 #    with `extract = false` + `rename`, so ynh_setup_source validates the

@@ -6,7 +6,7 @@
 Portefeuille Lightning auto-hébergé (noeud LDK intégré + Nostr Wallet Connect)
 
 [![🌐 Site officiel](https://img.shields.io/badge/Site_officiel-darkgreen?style=for-the-badge)](https://albyhub.com/)
-[![Version : 1.24.0~ynh4](https://img.shields.io/badge/Version-1.24.0~ynh4-rgb(18,138,11)?style=for-the-badge)](https://github.com/getAlby/hub/releases/tag/v1.24.0)
+[![Version : 1.24.0~ynh5](https://img.shields.io/badge/Version-1.24.0~ynh5-rgb(18,138,11)?style=for-the-badge)](https://github.com/getAlby/hub/releases/tag/v1.24.0)
 
 > ⚠️ **Alby Hub gère des fonds Bitcoin et Lightning.** Lors de la première
 > configuration, une **phrase de récupération** vous sera montrée — conservez-la

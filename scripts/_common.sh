@@ -47,6 +47,34 @@ ynh_alby_recovery_warning() {
 	ynh_print_warn "is NOT a substitute for the wallet recovery phrase."
 }
 
+# YunoHost allocates this resource independently for each multi-instance
+# install.  Keep the fallback for older instances created before the resource
+# existed.
+ynh_alby_p2p_port() {
+	local resource
+	resource="$(ynh_app_setting_get --app="$app" --key=port_p2p 2>/dev/null || true)"
+	printf '%s' "${resource:-9735}"
+}
+
+# Alby Hub can run multiple LDK instances, but not multiple Hub instances
+# against the one packaged CLN node: they would be separate Hub databases
+# controlling the same external wallet/node.  Check only the CLN case; LDK
+# instances are isolated by their per-instance data and allocated P2P port.
+ynh_alby_check_backend_instance_safety() {
+	local requested_backend existing existing_backend
+	requested_backend="${ln_backend_type:-LDK}"
+	[ "$requested_backend" = "CLN" ] || return 0
+
+	while IFS= read -r existing; do
+		[ -n "$existing" ] || continue
+		[ "$existing" = "$app" ] && continue
+		existing_backend="$(ynh_app_setting_get --app="$existing" --key=ln_backend_type 2>/dev/null || true)"
+		if [ "$existing_backend" = "CLN" ]; then
+			ynh_die "Another Alby Hub instance ($existing) already uses the packaged Core Lightning node. Multiple CLN-backed Alby Hub instances are not supported because they would share the same external wallet/node."
+		fi
+	done < <(yunohost app list --output-as json 2>/dev/null | jq -r '.apps[]?.id | select(startswith("alby_hub"))')
+}
+
 # Unpack the downloaded release archive into $install_dir, preserving the
 # bin/ + lib/ layout, then drop the archive. Fails loudly if the layout is
 # not what we expect, rather than leaving a half-installed binary.
@@ -79,8 +107,11 @@ ynh_alby_build_backend_env() {
 	ln_backend_type="$(ynh_app_setting_get --app="$app" --key=ln_backend_type 2>/dev/null || echo LDK)"
 	cln_env_block=""
 	cln_lightning_dir_ro=""
+	ldk_env_block=""
 
-	if [ "$ln_backend_type" = "CLN" ]; then
+	if [ "$ln_backend_type" = "LDK" ]; then
+		ldk_env_block="Environment=LDK_LISTENING_ADDRESSES=[::]:$(ynh_alby_p2p_port)"
+	elif [ "$ln_backend_type" = "CLN" ]; then
 		local cln_address cln_lightning_dir cln_address_hold
 		cln_address="$(ynh_app_setting_get --app="$app" --key=cln_address 2>/dev/null || true)"
 		cln_lightning_dir="$(ynh_app_setting_get --app="$app" --key=cln_lightning_dir 2>/dev/null || true)"
