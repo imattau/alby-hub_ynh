@@ -56,8 +56,8 @@ a database or wallet problem — the wallet and funds are unaffected.
 To fix: clear the site data for this domain (DevTools → Application → Local
 Storage → remove `authToken`), reload the page, and log in again. Clearing only
 the local storage is enough; do not reinstall or restore the app. The package
-also disables browser caching at the reverse proxy so future upgrades do not
-reuse an old application shell.
+forwards the authorization header explicitly through nginx; stale frontend
+cache invalidation remains an upstream Alby Hub concern.
 
 ## Changing the domain
 
