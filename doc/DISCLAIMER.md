@@ -32,6 +32,17 @@ substitute for the recovery phrase** — the two recover different things:
 
 Always keep **both** the recovery phrase and a current YunoHost backup.
 
+## The Lightning backend cannot be changed later
+
+At install time you choose the Lightning backend (`LDK`, the default embedded
+node, or `CLN`, a co-installed Core Lightning node). This choice is locked in
+the moment you complete first-run wallet setup — Alby Hub has no
+switch-backend feature. Moving to the other backend later means
+`yunohost app remove alby_hub --purge` (which deletes this wallet's local
+state) followed by a fresh install with the other choice. Recover funds via
+the recovery phrase into the new wallet; do not treat this as a routine
+reconfiguration.
+
 ## It is a hot wallet
 
 Alby Hub is a **hot wallet**: its keys live on an internet-connected server.
