@@ -85,15 +85,44 @@ Alby Hub is configured through its own web UI after first run. Environment-
 level defaults (port, data dir, embedded LDK node, esplora backend) are fixed
 in the systemd unit and should not normally need editing. Selectively
 overridable upstream settings (`LDK_*`, `RELAY`, `NETWORK`, ...) are out of
-scope for this v1 package and can be layered on later via a configuration
-panel.
+scope for this v1 package.
+
+## Lightning backend (LDK vs Core Lightning)
+
+The Lightning backend (`ln_backend_type`, `LDK` or `CLN`) is an **install-time
+choice only** — there is no config-panel option to switch it after install.
+This is not a packaging limitation: upstream Alby Hub reads `LN_BACKEND_TYPE`
+and fixes the backend the moment a wallet is created during first-run setup
+(`service/start.go`); changing the env var afterwards has no effect on an
+existing wallet. To switch backends, remove the app with `--purge` (destroying
+the current wallet's local state — see `doc/DISCLAIMER.md`) and reinstall with
+the other choice.
+
+Choosing `CLN` requires a `core_lightning` app (from `core-lightning_ynh`)
+already installed on this server with gRPC enabled (its config panel's
+`grpc_enabled` setting — see that package's `doc/GRPC_BACKEND.md`). The
+install/upgrade/restore scripts then:
+
+- read `cln_address` / `cln_lightning_dir` / `cln_address_hold` and set them as
+  `CLN_ADDRESS` / `CLN_LIGHTNING_DIR` / `CLN_ADDRESS_HOLD` in the systemd unit;
+- join this app's system user to the `core_lightning` unix group, which is
+  what actually grants read access to Core Lightning's gRPC client certs
+  (`ca.pem`, `client.pem`, `client-key.pem`) — nothing else in Core Lightning's
+  data directory is exposed;
+- add `cln_lightning_dir` to the systemd sandbox's `ReadOnlyPaths=`, since
+  `ProtectSystem=strict` would otherwise block reading it regardless of unix
+  permissions.
+
+If `core_lightning`'s group doesn't exist yet, install/upgrade fails with a
+clear error rather than silently falling back to LDK.
 
 ## Known v1 limitations
 
 - The embedded LDK node's own P2P listener (upstream default `[::]:9735`) is
   **not** firewall-opened by this package. Outbound channels/peering work, but
   other nodes cannot dial in to open channels to your node until that port is
-  opened. Public inbound channels are a follow-up.
+  opened. Public inbound channels are a follow-up. (Not applicable when
+  `ln_backend_type = CLN` — Core Lightning manages its own P2P port.)
 - Backups use a stop → declare → restart scheme; a fully atomic staged dump is
   a tracked follow-up before the package is marked stable (see
   `doc/BACKUP.md`).

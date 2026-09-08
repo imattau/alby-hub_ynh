@@ -28,10 +28,23 @@ chown -R "$app:$app" "$data_dir"
 chmod 750 "$data_dir"
 
 # ---------------------------------------------------------------------------
+# 3b. Persist the Lightning backend choice. This is install-time only: Alby
+#     Hub fixes its backend at first wallet setup (see doc/ADMIN.md), so
+#     there is no config-panel equivalent to change it later.
+# ---------------------------------------------------------------------------
+ynh_app_setting_set --app="$app" --key=ln_backend_type --value="${ln_backend_type:-LDK}"
+if [ "${ln_backend_type:-LDK}" = "CLN" ]; then
+	ynh_app_setting_set --app="$app" --key=cln_address --value="${cln_address:-}"
+	ynh_app_setting_set --app="$app" --key=cln_lightning_dir --value="${cln_lightning_dir:-}"
+	ynh_app_setting_set --app="$app" --key=cln_address_hold --value="${cln_address_hold:-}"
+fi
+
+# ---------------------------------------------------------------------------
 # 4. Register the service and install systemd + nginx configs.
 # ---------------------------------------------------------------------------
 ynh_script_progression "Configuring systemd..."
 yunohost service add "$service_name" --description="Alby Hub self-hosted Lightning wallet (HTTP mode)" --log="$alby_log_path" || true
+ynh_alby_build_backend_env
 ynh_config_add_systemd
 
 ynh_script_progression "Configuring Nginx..."
@@ -61,4 +74,7 @@ done
 ynh_script_progression "Alby Hub installation completed"
 ynh_alby_display_url
 ynh_alby_recovery_warning
+if [ "${ln_backend_type:-LDK}" = "CLN" ]; then
+	ynh_print_info "Backend: Core Lightning via gRPC at $cln_address (LN_BACKEND_TYPE=CLN is pre-set; the LDK/embedded node was not started)."
+fi
 ynh_print_info "Open the URL above to create your wallet and record its recovery phrase."

@@ -59,6 +59,44 @@ ram.runtime = "200M"
     default = "Alby Hub"
     example = "My Alby Hub"
 
+    # Backend choice is install-time only: Alby Hub fixes its Lightning
+    # backend the moment a wallet is created during first-run setup, and
+    # switching afterwards is not supported upstream (see doc/ADMIN.md).
+    # Everything below only matters when a co-installed Core Lightning app
+    # (core_lightning, from core-lightning_ynh) has gRPC enabled - see that
+    # package's doc/GRPC_BACKEND.md for the contract this relies on.
+    [install.ln_backend_type]
+    ask.en = "Lightning backend"
+    ask.fr = "Backend Lightning"
+    type = "select"
+    choices = ["LDK", "CLN"]
+    default = "LDK"
+    help.en = "LDK is Alby Hub's own embedded node (no other app required). CLN connects to a co-installed Core Lightning app over gRPC instead. This cannot be changed after wallet setup without discarding the wallet."
+
+    [install.cln_address]
+    ask.en = "Core Lightning gRPC address (host:port)"
+    ask.fr = "Adresse gRPC de Core Lightning (hôte:port)"
+    type = "string"
+    optional = true
+    default = "127.0.0.1:9736"
+    visible = "ln_backend_type == 'CLN'"
+
+    [install.cln_lightning_dir]
+    ask.en = "Core Lightning gRPC cert directory"
+    ask.fr = "Répertoire des certificats gRPC de Core Lightning"
+    type = "string"
+    optional = true
+    default = "/home/yunohost.app/core_lightning/bitcoin"
+    help.en = "The Core Lightning network data directory containing ca.pem, client.pem and client-key.pem (not the bare Core Lightning data directory)."
+    visible = "ln_backend_type == 'CLN'"
+
+    [install.cln_address_hold]
+    ask.en = "(optional) CLN hold-invoice plugin gRPC address"
+    ask.fr = "(optionnel) Adresse gRPC du plugin hold de CLN"
+    type = "string"
+    optional = true
+    visible = "ln_backend_type == 'CLN'"
+
 [resources]
 
     # Upstream ships a single self-contained Go binary per architecture

@@ -26,6 +26,7 @@ ynh_alby_unpack_release
 
 ynh_script_progression "Upgrading systemd configuration..."
 yunohost service add "$service_name" --description="Alby Hub self-hosted Lightning wallet (HTTP mode)" --log="$alby_log_path" || true
+ynh_alby_build_backend_env
 ynh_config_add_systemd
 
 ynh_script_progression "Upgrading Nginx configuration..."

@@ -70,3 +70,34 @@ ynh_alby_unpack_release() {
 	chmod 750 "$install_dir/bin" "$install_dir/lib"
 	chmod -R o-rwx "$install_dir"
 }
+
+# Reads the ln_backend_type app setting and populates the shell variables
+# consumed by the __LN_BACKEND_TYPE__/__CLN_ENV_BLOCK__/__CLN_LIGHTNING_DIR_RO__
+# tokens in conf/systemd.service. LDK (the default) needs no extra env and no
+# extra filesystem access, so both blocks are left empty in that case.
+ynh_alby_build_backend_env() {
+	ln_backend_type="$(ynh_app_setting_get --app="$app" --key=ln_backend_type 2>/dev/null || echo LDK)"
+	cln_env_block=""
+	cln_lightning_dir_ro=""
+
+	if [ "$ln_backend_type" = "CLN" ]; then
+		local cln_address cln_lightning_dir cln_address_hold
+		cln_address="$(ynh_app_setting_get --app="$app" --key=cln_address 2>/dev/null || true)"
+		cln_lightning_dir="$(ynh_app_setting_get --app="$app" --key=cln_lightning_dir 2>/dev/null || true)"
+		cln_address_hold="$(ynh_app_setting_get --app="$app" --key=cln_address_hold 2>/dev/null || true)"
+
+		[ -n "$cln_address" ] || ynh_die "ln_backend_type is CLN but cln_address is not set"
+		[ -n "$cln_lightning_dir" ] || ynh_die "ln_backend_type is CLN but cln_lightning_dir is not set"
+
+		getent group core_lightning >/dev/null || ynh_die "ln_backend_type is CLN, but no 'core_lightning' system group was found. Install core-lightning_ynh with gRPC enabled first."
+		usermod -aG core_lightning "$app"
+
+		cln_env_block="Environment=CLN_ADDRESS=$cln_address
+Environment=CLN_LIGHTNING_DIR=$cln_lightning_dir"
+		if [ -n "$cln_address_hold" ]; then
+			cln_env_block="$cln_env_block
+Environment=CLN_ADDRESS_HOLD=$cln_address_hold"
+		fi
+		cln_lightning_dir_ro="$cln_lightning_dir"
+	fi
+}
