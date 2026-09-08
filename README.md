@@ -6,7 +6,7 @@
 Self-hosted Lightning wallet (embedded LDK node + Nostr Wallet Connect)
 
 [![🌐 Official app website](https://img.shields.io/badge/Official_app_website-darkgreen?style=for-the-badge)](https://albyhub.com/)
-[![Version: 1.24.0~ynh1](https://img.shields.io/badge/Version-1.24.0~ynh1-rgb(18,138,11)?style=for-the-badge)](https://github.com/getAlby/hub/releases/tag/v1.24.0)
+[![Version: 1.24.0~ynh4](https://img.shields.io/badge/Version-1.24.0~ynh4-rgb(18,138,11)?style=for-the-badge)](https://github.com/getAlby/hub/releases/tag/v1.24.0)
 
 > ⚠️ **Alby Hub controls Bitcoin and Lightning funds.** During first-run setup
 > you will be shown a wallet **recovery phrase** — store it offline, outside
