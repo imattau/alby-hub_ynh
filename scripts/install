@@ -84,5 +84,7 @@ ynh_alby_display_url
 ynh_alby_recovery_warning
 if [ "${ln_backend_type:-LDK}" = "CLN" ]; then
 	ynh_print_info "Backend: Core Lightning via gRPC at $cln_address (LN_BACKEND_TYPE=CLN is pre-set; the LDK/embedded node was not started)."
+	ynh_print_info "Back up the Core Lightning mnemonic or hsm_secret and emergency.recover; this external CLN wallet has no Alby Hub recovery phrase."
+else
+	ynh_print_info "Open the URL above to create your wallet and record its recovery phrase."
 fi
-ynh_print_info "Open the URL above to create your wallet and record its recovery phrase."
